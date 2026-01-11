@@ -3,9 +3,6 @@
 // Create by 青杉白衣 on 2023
 //
 
-#ifndef PSCAN_CPP
-#define PSCAN_CPP
-
 #include "pscan.h"
 #include <cstdio>
 
@@ -44,7 +41,7 @@ size_t pscan::PScan<T>::scanPointerChain(std::vector<T> &addr, int depth, size_t
 template <class T>
 size_t pscan::PScan<T>::formatOutputFile(const char *input_file, const char *output_file)
 {
-    FILE *f = fopen(input_file, "rb+");
+    FILE *f = fopen(input_file, "rb");
     if (f == nullptr) {
         printf("Error: Cannot open input file %s\n", input_file);
         return 0;
@@ -59,7 +56,7 @@ size_t pscan::PScan<T>::formatOutputFile(const char *input_file, const char *out
 template <class T>
 size_t pscan::PScan<T>::formatOutputFolder(const char *input_file, const char *folder_path)
 {
-    FILE *f = fopen(input_file, "rb+");
+    FILE *f = fopen(input_file, "rb");
     if (f == nullptr) {
         printf("Error: Cannot open input file %s\n", input_file);
         return 0;
@@ -74,5 +71,3 @@ size_t pscan::PScan<T>::formatOutputFolder(const char *input_file, const char *f
 // 显式模板实例化
 template class pscan::PScan<uint32_t>;
 template class pscan::PScan<size_t>;
-
-#endif
