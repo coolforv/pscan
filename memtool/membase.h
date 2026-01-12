@@ -17,7 +17,6 @@
 #include <sys/user.h> // for PAGE_SIZE
 #include <unistd.h>
 
-#include "../new_memtool/memTools3.2.8.hpp"
 #include "memsetting.h"
 
 namespace memtool
