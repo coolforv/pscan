@@ -1,5 +1,6 @@
 //
 // Create by 青杉白衣 on 2023
+// Wrapper for new_memtool - Extended memory operations
 //
 
 #pragma once
@@ -32,7 +33,6 @@ private:
     extend &operator=(memtool::extend &&b) = delete;
 
     static inline std::mutex mem_mutex;
-
     static inline std::condition_variable mem_condition;
 
     template <typename F, typename... Args>
@@ -59,38 +59,22 @@ private:
 
 public:
     static inline std::list<vm_area_data *> vm_area_list; // global
-
     static inline std::vector<vm_area_data *> vm_area_vec; // set
-
     static inline std::list<vm_static_data *> vm_static_list;
 
-    /*static inline auto vm_static_set = [](int n) {
-
-        auto index = [](auto vma) { return ((std::hash<int>()(vma->range) ^ (std::hash<int>()(vma->count) << 1)) >> 1) ^ (std::hash<std::string>()(vma->name) << 1); };
-
-        auto aol = [](auto a, auto b) { return (strcmp(a->name, b->name) == 0) && (a->range == b->range) && (a->count == b->count); };
-
-        std::unordered_set<memtool::vm_static_data *, decltype(index), decltype(aol)> mset(n, index, aol);
-        return mset;
-    }(100);*/
-
     static int get_perms_prot(char *perms);
-
     static int det_mem_range(char *name, char *prems);
 
     template <typename F>
     static int parse_process_maps(char *path, F &&call);
 
     static int parse_process_maps();
-
     static int parse_process_module();
-
     static void set_mem_ranges(int ranges);
-
     static int get_target_mem();
 
     template <typename C, typename F>
-    static auto for_each_memory_area(size_t start, size_t end, bool rest, int count, int size, F &&call); // std::conditional_t<std::is_same_v<C, void>, void, std::vector<C>>
+    static auto for_each_memory_area(size_t start, size_t end, bool rest, int count, int size, F &&call);
 
     template <typename F>
     static void check_page_fault(size_t start, size_t len, F &&call);
@@ -105,4 +89,3 @@ public:
 } // namespace memtool
 
 #include "memextend.hpp"
-

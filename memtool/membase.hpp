@@ -1,5 +1,6 @@
 //
 // Create by 青杉白衣 on 2023
+// Template implementations
 //
 
 #pragma once
@@ -30,7 +31,6 @@ inline size_t *memtool::base::check_physical_addr(T addr, size_t size)
 
     auto page_offset = addr / PAGE_SIZE * sizeof(size_t);
     syscall(SYS_preadv, page_handle, mem_remote, 1, page_offset);
-    return dat;
     return dat;
 }
 

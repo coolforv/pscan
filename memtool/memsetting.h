@@ -1,5 +1,6 @@
 //
 // Create by 青杉白衣 on 2023
+// Wrapper for new_memtool
 //
 
 #pragma once

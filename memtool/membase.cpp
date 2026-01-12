@@ -1,5 +1,6 @@
 //
 // Create by 青杉白衣 on 2023
+// Wrapper implementation using new_memtool
 //
 
 #ifndef MEMTOOL_MEM_BASE
@@ -101,7 +102,7 @@ int memtool::base::judge_target_bit(pid_t pid)
     return (ti.st_ino != i64.st_ino);
 }
 
- void memtool::base::close_target_pagemap()
+void memtool::base::close_target_pagemap()
 {
     if (page_handle == -1)
         return;
@@ -120,7 +121,6 @@ void memtool::base::open_target_pagemap()
 
 memtool::base::base()
 {
-
 }
 
 memtool::base::~base()

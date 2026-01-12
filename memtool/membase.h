@@ -1,5 +1,6 @@
 //
 // Create by 青杉白衣 on 2023
+// Wrapper for new_memtool - Base memory operations
 //
 
 #pragma once
@@ -16,6 +17,7 @@
 #include <sys/user.h> // for PAGE_SIZE
 #include <unistd.h>
 
+#include "../new_memtool/memTools3.2.8.hpp"
 #include "memsetting.h"
 
 namespace memtool
@@ -25,11 +27,8 @@ class base
 {
 private:
     static inline thread_local iovec mem_local[1];
-
     static inline thread_local iovec mem_remote[1];
-
     static inline thread_local size_t page_present;
-
     static inline int page_handle = -1;
 
 protected:
@@ -45,15 +44,10 @@ public:
     static inline pid_t target_pid = -1;
 
     static int get_package_uid(const char *package);
-
     static int get_pid_by_uid(int uid);
-
     static int get_pid(const char *package);
-
     static int judge_target_bit(pid_t pid);
-
     static void close_target_pagemap();
-
     static void open_target_pagemap();
 
     template <typename T>
