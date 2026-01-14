@@ -1,5 +1,6 @@
 //
 // Create by 青杉白衣 on 2023
+// Implementation using old memtool logic (keeping same functionality)
 //
 
 #ifndef MEMTOOL_MEM_EXTENDS
@@ -155,6 +156,6 @@ memtool::extend::~extend()
     vm_area_list.clear();
     utils::free_container_data(vm_static_list);
     vm_static_list.clear();
-} // actually useless
+}
 
 #endif

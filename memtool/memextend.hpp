@@ -1,5 +1,6 @@
 //
 // Create by 青杉白衣 on 2023
+// Template implementations
 //
 
 #pragma once
@@ -23,8 +24,6 @@ int memtool::extend::parse_process_maps(char *path, F &&call)
     while (getline(&line, &len, f) > 0) {
         *vma.name = 0;
         sscanf(line, "%lx-%lx %s %lx %s %lu %127s\n", &vma.start, &vma.end, vma.perms, &vma.offset, vma.dev, &vma.inode, vma.name);
-        // if (strstr(vma.perms, "r") == nullptr)
-        //    continue;
 
         vma.range = det_mem_range(vma.name, vma.perms);
         vma.prot = get_perms_prot(vma.perms);
@@ -49,7 +48,6 @@ void memtool::extend::employ_memory_block(size_t start, size_t size, char **buff
     --index;
     lock.unlock();
 
-    // readv(start, buf, size);
     call(buf, start, size, vma, std::forward<Args>(args)...);
 
     lock.lock();
