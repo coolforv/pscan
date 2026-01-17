@@ -8,7 +8,7 @@
 
 // 标准的单个指针偏移保存结构
 struct STRUCT_PLIST{
-    std::shared_ptr<vm_static_data> p_static_data = nullptr;
+    vm_static_data *p_static_data = nullptr;
     std::vector<int> v_off;
 };
 
@@ -19,15 +19,19 @@ template <class T>
 struct cscan : public ::chainer::scan<T>
 {
     size_t get_pointers(T start, T end, bool rest, int count, int size);
-
     bool is_static_pointer(T &addr, vm_static_data *p_static_data=nullptr);
-
     size_t scan_pointer_chain(std::vector<T> &addr, int depth, size_t offset, bool limit, size_t plim, FILE *outstream);
-
-    // 指针结果
+    
+    // 分页获取指针结果
     size_t get_scanned_rows(std::vector<STRUCT_PLIST> &v_results, int index_start=1, int max_rows=10000);
+    int filterPoints(int pid_tmp, DWORD64 addr=0);
+
+    // 通过模块名获取模块地址
+    size_t get_modules_addr(std::string mudules_name);
+
     cscan();
     ~cscan();
+    
 
 private:
     // 递归收集偏移的辅助函数

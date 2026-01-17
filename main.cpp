@@ -40,7 +40,7 @@ int main()
 
     std::cout << "====分页获取指针结果并输出====" << std::endl;
     std::vector<STRUCT_PLIST> pointer_result;
-    int page_size = 10000;
+    int page_size = 1000;
     for (int n = 0; n < res_count; n += page_size)
     {
         int rows_count = t.get_scanned_rows(pointer_result, n, page_size);
@@ -56,7 +56,10 @@ int main()
         }
         std::cout << std::dec << "已遍历" << n << "~" << n+page_size << ",回车继续遍历." << std::endl;
         getchar();
+        res_count=t.filterPoints(pPid); // 改善指针，不传参数则是过滤无效指针，传了则是筛选指针结果地址为参数地址
     }
+
+
     /*chainer::cformat<size_t> t2;
     auto f2 = fopen("1", "rb+");
 

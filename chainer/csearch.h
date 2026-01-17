@@ -35,6 +35,7 @@ namespace chainer
         void filter_pointer_to_block(P &&input, size_t offset, utils::list_head<pointer_pcount<T>> *node, size_t avg, std::atomic<size_t> &total);
 
     public:
+        bool init_modules(int p_pid, int mem_range);
         size_t custom_get_pointers(int p_pid, int mem_range);
         size_t get_pointers(T start, T end, bool rest, int count, int size);
 

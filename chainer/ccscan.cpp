@@ -18,6 +18,19 @@ size_t chainer::cscan<T>::get_pointers(T start, T end, bool rest, int count, int
 }
 
 template <class T>
+size_t chainer::cscan<T>::get_modules_addr(std::string mudules_name)
+{
+    for (auto *vma : this->vm_static_list)
+    {
+        if (std::string(vma->name) == mudules_name)
+        {
+            return vma->start;
+        }
+    }
+    return 0;
+}
+
+template <class T>
 bool chainer::cscan<T>::is_static_pointer(T &addr, vm_static_data *p_static_data)
 {
     for (auto &v : this->vm_static_list)
@@ -109,7 +122,7 @@ size_t chainer::cscan<T>::scan_pointer_chain(std::vector<T> &addr, int depth, si
                 for (int n = 0; n < offsets.size(); n++)
                 {
                     v_results.push_back(STRUCT_PLIST{
-                        .p_static_data = std::shared_ptr<vm_static_data>(r.vma, [](vm_static_data *) {}), // 使用自定义删除器避免重复释放
+                        .p_static_data = r.vma,
                         .v_off = std::move(offsets[n])});
                 }
                 offsets.clear();
@@ -117,8 +130,8 @@ size_t chainer::cscan<T>::scan_pointer_chain(std::vector<T> &addr, int depth, si
         }
         count += temp;
     }
-    std::cout << "total rows:" << v_results.size() << std::endl;
-    std::cout << "total count:" << count << std::endl;
+    //std::cout << "total rows:" << v_results.size() << std::endl;
+    //std::cout << "total count:" << count << std::endl;
     // 保存结果到成员变量
     this->saved_results.swap(v_results);
     this->integr_data_to_file(contents, ranges, outstream);
@@ -193,6 +206,46 @@ size_t chainer::cscan<T>::get_scanned_rows(std::vector<STRUCT_PLIST> &v_results,
     size_t copied_count = std::min(max_rows, static_cast<int>(this->saved_results.size()) - index_start);
     v_results.insert(v_results.end(), this->saved_results.begin() + index_start, this->saved_results.begin() + index_start + copied_count);
     return copied_count; // 返回实际复制的行数
+}
+
+// 改善指针结果，addr为0则是过滤掉无效指针，返回过滤后的指针数目
+template <class T>
+int chainer::cscan<T>::filterPoints(int pid_tmp, DWORD64 addr) {
+    pPid = pid_tmp;
+    if (this->saved_results.empty() || !Mem::isRunning()) return 0;
+    // 从后往前遍历
+    for (int i = static_cast<int>(this->saved_results.size()) - 1; i >= 0; --i) {
+        auto& item = this->saved_results[i];
+        bool should_remove = false;
+        if (!item.p_static_data || item.v_off.empty()) {
+            should_remove = true;
+        } else {
+            DWORD64 addr_tmp = get_modules_addr(item.p_static_data->name);
+            // 计算地址链
+            for (size_t j = 0; j < item.v_off.size()-1; ++j) {
+                addr_tmp = Mem::RDword64(addr_tmp + item.v_off[j]);
+                if (addr_tmp == 0) {
+                    should_remove = true;
+                    break;
+                }
+            }
+            addr_tmp+=item.v_off.back();
+            if (!should_remove) {
+                if (addr > 0) {
+                    should_remove = !(addr_tmp == addr);
+                } else {
+                    should_remove = !Mem::is_valid(addr_tmp);
+                }
+            }
+        }
+        // 如果需要删除
+        if (should_remove) {
+            this->saved_results.pop_back();
+        }
+    }
+    
+    this->saved_results.shrink_to_fit();
+    return static_cast<int>(this->saved_results.size());
 }
 
 template <class T>

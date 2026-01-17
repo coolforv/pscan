@@ -4,8 +4,10 @@
 
 #pragma once
 
+#include "cbase.h"
 #include "csearch.h"
 #include <iostream>
+#include <map>
 #include "../../../memTools/jni/memTools3.2.8.hpp"
 
 static auto search_pointer_by_bin_gt = [](auto &&n, auto &&target)
@@ -158,9 +160,8 @@ void chainer::search<T>::filter_pointer_to_block(P &&input, size_t offset, utils
 }
 
 
-// 使用自定义vMaps和内存读取函数的get_pointers函数
 template <class T>
-size_t chainer::search<T>::custom_get_pointers(int p_pid, int mem_range)
+bool chainer::search<T>::init_modules(int p_pid, int mem_range)
 {
     // Mem::mem("com.LanPiaoPiao.PlantsVsZombiesRH");
     pPid = p_pid;
@@ -168,8 +169,75 @@ size_t chainer::search<T>::custom_get_pointers(int p_pid, int mem_range)
     {
         return 0;
     }
+    vMaps.clear();
     Mem::SetMemRange(mem_range);
     if (vMaps.empty())
+    {
+        return 0;
+    }
+    {
+        // 释放vm_static_list中的内存
+        for (auto *vma : vm_static_list)
+        {
+            delete vma;
+        }
+        vm_static_list.clear();
+        // 释放vm_area_vec中的内存
+        for (auto *area : vm_area_vec)
+        {
+            delete area;
+        }
+        vm_area_vec.clear();
+    }
+    // 模块名规则：重名so则添加.so@1、.so@2，bss内存则是.so@1/[anon:.bss]@1、.so@1/[anon:.bss]@2
+    std::map<std::string, int> module_count;
+    std::string last_so;
+    for (auto &map : vMaps)
+    {
+        map.infor = map.infor.substr(map.infor.find_last_of("/") + 1);
+        if (map.infor.find(".so") != -1)
+        {
+            std::string left_infor = map.infor;
+            module_count[left_infor]++;
+            map.infor = left_infor + "@" + std::to_string(module_count[left_infor]);
+            last_so = map.infor;
+            // std::cout << "static so:" << map.infor << std::endl;
+        }
+        else if (map.infor.find("[anon:.bss]") != -1)
+        {
+            std::string left_infor = last_so + "/bss";
+            module_count[left_infor]++;
+            map.infor = left_infor + "@" + std::to_string(module_count[left_infor]);
+            // std::cout << "static bss:" << map.infor << std::endl;
+        }
+    }
+    std::string last_static_tmp;
+    for (auto &map : vMaps)
+    {
+        std::string infor = map.infor;
+        if (infor.find("[anon:.bss]") != -1 || infor.find(".so") != -1)
+        {
+            auto mod = new vm_static_data(map.baddr, map.eaddr, 1);
+            strcpy(mod->name, infor.c_str());
+            vm_static_list.emplace_back(mod);
+        }
+        else
+        {
+            auto mod = new vm_area_data;
+            mod->start = map.baddr;
+            mod->end = map.eaddr;
+            strcpy(mod->name, infor.c_str());
+            vm_area_vec.emplace_back(mod);
+        }
+    }
+    return !vm_static_list.empty() && !vm_area_vec.empty();
+}
+
+// 使用自定义vMaps和内存读取函数的get_pointers函数
+template <class T>
+size_t chainer::search<T>::custom_get_pointers(int p_pid, int mem_range)
+{
+    if (!init_modules(p_pid, mem_range))
     {
         return 0;
     }
@@ -186,32 +254,8 @@ size_t chainer::search<T>::custom_get_pointers(int p_pid, int mem_range)
     chainer::pointer_data<T> data;
     data.address = 0;
     data.value = 0;
-    {
-        // 释放vm_static_list中的内存
-        for (auto* vma : vm_static_list) {
-            delete vma;
-        }
-        vm_static_list.clear();
-        // 释放vm_area_vec中的内存
-        for (auto* area : vm_area_vec) {
-            delete area;
-        }
-        vm_area_vec.clear();
-    }
     for (const auto &map : vMaps)
     {
-        std::string infor = map.infor.substr(map.infor.find_last_of("/") + 1);
-        if(infor.find("[anon:.bss]")!=-1 || infor.find(".so")!=-1){
-            auto mod = new vm_static_data(map.baddr, map.eaddr, 1);
-            strcpy(mod->name, infor.c_str());
-            vm_static_list.emplace_back(mod);
-        }else{
-            auto mod = new vm_area_data;
-            mod->start = map.baddr;
-            mod->end = map.eaddr;
-            strcpy(mod->name, infor.c_str());
-            vm_area_vec.emplace_back(mod);
-        }
         // 范围for循环，更简洁
         DWORD64 block_start = map.baddr;
         DWORD64 block_end = map.eaddr;
@@ -270,8 +314,8 @@ size_t chainer::search<T>::custom_get_pointers(int p_pid, int mem_range)
     pcoll.map(f);
     cache.reserve(pcoll.size());
     // 输出静态内存块的数量和pcoll的数量
-    //std::cout << "static memory blocks:" << vm_static_list.size() << std::endl;
-    //std::cout << "pcoll:" << pcoll.size() << std::endl;
+    // std::cout << "static memory blocks:" << vm_static_list.size() << std::endl;
+    // std::cout << "pcoll:" << pcoll.size() << std::endl;
     fclose(f);
     return pcoll.size();
 }
