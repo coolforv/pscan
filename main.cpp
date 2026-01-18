@@ -32,11 +32,12 @@ int main()
 
     std::cout << "====正在进行指针扫描====" << std::endl;
     std::vector<size_t> addr;
-    addr.emplace_back(0x742F5DFD4C);
-    auto f = fopen("/data/local/tmp/pscan_tmp", "wb+");
-    res_count = t.scan_pointer_chain(addr, 4, 2500, false, 0, f);
-    printf("%ld\n", res_count); // x层 偏移n
-    fclose(f);                  // 现在已经结束了 后面的是格式化
+    addr.emplace_back(0x74445720CC);
+    res_count = t.scan_pointer_chain(addr, 3, 2500, false, 0);
+    std::cout << "已找到" << res_count << "组指针" << std::endl;
+    
+    // 清理资源
+    t.clear_unnecessary_data();
 
     std::cout << "====分页获取指针结果并输出====" << std::endl;
     std::vector<STRUCT_PLIST> pointer_result;
@@ -56,8 +57,9 @@ int main()
         }
         std::cout << std::dec << "已遍历" << n << "~" << n+page_size << ",回车继续遍历." << std::endl;
         getchar();
-        res_count=t.filterPoints(pPid); // 改善指针，不传参数则是过滤无效指针，传了则是筛选指针结果地址为参数地址
     }
+
+    res_count=t.filterPoints(pPid); // 改善指针，不传参数则是过滤无效指针，传了则是筛选指针结果地址为参数地址
 
 
     /*chainer::cformat<size_t> t2;

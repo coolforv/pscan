@@ -3,8 +3,21 @@
 
 #include "threadpool.h"
 
+// 修改 utils/threadtool/threadpool.cpp 中的 work_thread 函数
 void utils::threadpool::work_thread()
 {
+    // 设置线程为实时调度策略，最高优先级
+    struct sched_param sch_params;
+    int max_priority = sched_get_priority_max(SCHED_FIFO);
+    if (max_priority != -1) {
+        sch_params.sched_priority = max_priority;
+        if (pthread_setschedparam(pthread_self(), SCHED_FIFO, &sch_params) != 0) {
+            // 如果设置失败，尝试设置为 RR 调度策略
+            sch_params.sched_priority = sched_get_priority_max(SCHED_RR);
+            pthread_setschedparam(pthread_self(), SCHED_RR, &sch_params);
+        }
+    }
+    
     for (;;) {
         std::function<void()> task;
 

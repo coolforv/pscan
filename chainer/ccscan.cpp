@@ -11,6 +11,35 @@
 #include <unordered_map>
 #include <vector>
 
+// 添加清理不必要的数据方法的实现
+template <class T>
+void chainer::cscan<T>::clear_unnecessary_data()
+{
+    // 清理父类中的数据，只保留 vm_static_list（filterPoints 需要）
+    // 清理 pcoll（指针集合数据）
+    if (this->pcoll.data) {
+        fclose(this->pcoll.f);
+        munmap(this->pcoll.data, this->pcoll.scapacity * sizeof(chainer::pointer_data<T>));
+        this->pcoll.data = nullptr;
+        this->pcoll.f = nullptr;
+        this->pcoll.ssize = 0;
+        this->pcoll.scapacity = 0;
+    }
+    
+    // 清理 cache
+    if (this->cache.data) {
+        fclose(this->cache.f);
+        munmap(this->cache.data, this->cache.scapacity * sizeof(void*));
+        this->cache.data = nullptr;
+        this->cache.f = nullptr;
+        this->cache.ssize = 0;
+        this->cache.scapacity = 0;
+    }
+    
+    // 清理其他临时数据结构，但保留 vm_static_list 和 saved_results
+    // 因为这两个是 filterPoints 所需的
+}
+
 template <class T>
 size_t chainer::cscan<T>::get_pointers(T start, T end, bool rest, int count, int size)
 {
@@ -45,7 +74,7 @@ bool chainer::cscan<T>::is_static_pointer(T &addr, vm_static_data *p_static_data
 }
 
 template <class T>
-size_t chainer::cscan<T>::scan_pointer_chain(std::vector<T> &addr, int depth, size_t offset, bool limit, size_t plim, FILE *outstream)
+size_t chainer::cscan<T>::scan_pointer_chain(std::vector<T> &addr, int depth, size_t offset, bool limit, size_t plim)
 {
     if (addr.empty())
         return 0;
@@ -121,9 +150,10 @@ size_t chainer::cscan<T>::scan_pointer_chain(std::vector<T> &addr, int depth, si
                 // 保存结果
                 for (int n = 0; n < offsets.size(); n++)
                 {
-                    v_results.push_back(STRUCT_PLIST{
-                        .p_static_data = r.vma,
-                        .v_off = std::move(offsets[n])});
+                    STRUCT_PLIST sp_temp;
+                    sp_temp.p_static_data = r.vma;
+                    sp_temp.v_off = std::move(offsets[n]);
+                    v_results.push_back(std::move(sp_temp));
                 }
                 offsets.clear();
             }
@@ -134,7 +164,7 @@ size_t chainer::cscan<T>::scan_pointer_chain(std::vector<T> &addr, int depth, si
     //std::cout << "total count:" << count << std::endl;
     // 保存结果到成员变量
     this->saved_results.swap(v_results);
-    this->integr_data_to_file(contents, ranges, outstream);
+    // this->integr_data_to_file(contents, ranges, outstream);
     //  printf("\nfinish write into file, total spend: %fs\n", ptimer.get() / 1000000.0);
     return this->saved_results.size();
 }
@@ -190,7 +220,7 @@ void chainer::cscan<T>::collect_offsets_recursive(
     }
 }
 
-// 获取指针结果，数据结构：map{adrress(T), [offset1(int array), offset2(int array), ......]};
+// 分页获取指针结果，从第index_start开始获取max_rows行数据
 template <class T>
 size_t chainer::cscan<T>::get_scanned_rows(std::vector<STRUCT_PLIST> &v_results, int index_start, int max_rows)
 {
